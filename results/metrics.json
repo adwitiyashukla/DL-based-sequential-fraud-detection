@@ -1,0 +1,100 @@
+{
+  "test_transactions": 555719,
+  "test_frauds": 2145,
+  "test_fraud_rate": 0.003859864315018058,
+  "trivial_all_negative_accuracy": 0.9961401224136353,
+  "review_cost_per_false_positive": 5.0,
+  "sequence_length": 10,
+  "models": {
+    "gru": {
+      "pr_auc": 0.9652347549329161,
+      "roc_auc": 0.9992351169901056,
+      "recall_at_0.001": {
+        "alerts_reviewed": 556,
+        "recall": 0.2592074592074592,
+        "precision": 1.0
+      },
+      "recall_at_0.01": {
+        "alerts_reviewed": 5557,
+        "recall": 0.9892773892773893,
+        "precision": 0.3818607162137844
+      },
+      "cost": {
+        "threshold": 0.7138904333114624,
+        "alert_rate": 0.007228473383130683,
+        "cost": 15548.89990234375,
+        "confusion": {
+          "tp": 2114,
+          "fp": 1903,
+          "fn": 31,
+          "tn": 551671
+        },
+        "naive_threshold": 0.5,
+        "naive_cost": 18507.139892578125,
+        "naive_alerts": 5032,
+        "saving_vs_naive": 2958.239990234375,
+        "total_fraud_amount": 1133324.6799902916
+      }
+    },
+    "lightgbm": {
+      "pr_auc": 0.8985085792471785,
+      "roc_auc": 0.9974172780171616,
+      "recall_at_0.001": {
+        "alerts_reviewed": 556,
+        "recall": 0.25874125874125875,
+        "precision": 0.9982014388489209
+      },
+      "recall_at_0.01": {
+        "alerts_reviewed": 5557,
+        "recall": 0.9501165501165502,
+        "precision": 0.3667446463919381
+      },
+      "cost": {
+        "threshold": 0.5880337498766687,
+        "alert_rate": 0.009494006863180852,
+        "cost": 31707.208984375,
+        "confusion": {
+          "tp": 2033,
+          "fp": 3243,
+          "fn": 112,
+          "tn": 550331
+        },
+        "naive_threshold": 0.5,
+        "naive_cost": 33921.841796875,
+        "naive_alerts": 5941,
+        "saving_vs_naive": 2214.6328125,
+        "total_fraud_amount": 1133324.6799902916
+      }
+    },
+    "logreg": {
+      "pr_auc": 0.21899742390107182,
+      "roc_auc": 0.919594279505511,
+      "recall_at_0.001": {
+        "alerts_reviewed": 556,
+        "recall": 0.11701631701631701,
+        "precision": 0.45143884892086333
+      },
+      "recall_at_0.01": {
+        "alerts_reviewed": 5557,
+        "recall": 0.5538461538461539,
+        "precision": 0.21378441605182652
+      },
+      "cost": {
+        "threshold": 0.8105773329734802,
+        "alert_rate": 0.022407007858288093,
+        "cost": 194943.859375,
+        "confusion": {
+          "tp": 1377,
+          "fp": 11075,
+          "fn": 768,
+          "tn": 542499
+        },
+        "naive_threshold": 0.5,
+        "naive_cost": 501628.83984375,
+        "naive_alerts": 94358,
+        "saving_vs_naive": 306684.98046875,
+        "total_fraud_amount": 1133324.6799902916
+      }
+    }
+  }
+}
