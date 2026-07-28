@@ -8,7 +8,7 @@ transaction being scored. They never see the preceding nine transactions.
 Note the comparison is deliberately conservative. The feature vector already
 contains hand crafted history summaries (hours_since_prev, amt_vs_card_mean),
 so the baselines are not blind to the past. The question this isolates is
-narrower and more honest: does modelling the sequence explicitly add anything
+narrower and more precise: does modelling the sequence explicitly add anything
 beyond those hand crafted summaries?
 
 Run with:

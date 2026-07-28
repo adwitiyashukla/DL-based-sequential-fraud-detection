@@ -96,7 +96,7 @@ The network is deliberately small. The point is to isolate the value of sequence
 
 **Logistic regression.** Same features with one-hot categories, `class_weight="balanced"`. Present as a floor.
 
-**One honest caveat about the comparison.** The baselines are not blind to history: `log_hours_since_prev` and `log_amt_vs_card_mean` are hand-crafted summaries of the past, and both baselines get them. So this does not test "does history help". It tests the narrower and more defensible question: **does modelling the sequence explicitly add anything beyond hand-crafted history features?** The answer here is yes, and by a wide margin.
+**What this comparison actually isolates.** The baselines are not blind to history: `log_hours_since_prev` and `log_amt_vs_card_mean` are hand-crafted summaries of the past, and both baselines get them. So this does not test "does history help". It tests the narrower and more defensible question: **does modelling the sequence explicitly add anything beyond hand-crafted history features?** The answer here is yes, and by a wide margin.
 
 Everything ran on CPU only, on an Acer Aspire laptop with an i5-1235U and no GPU. Training took 7.1 minutes.
 
@@ -172,19 +172,7 @@ Stated plainly, because these bound what the numbers above are worth.
 
 ---
 
-## 7. Future work
-
-- Select the decision threshold on a held-out validation window rather than the test set
-- Hyperparameter search over sequence length, hidden size and learning rate
-- Concept drift analysis across the 24 month window, with periodic recalibration
-- A transformer encoder over the same sequences, for comparison against the GRU
-- A graph neural network over the card-merchant bipartite graph
-- Merchant embeddings alongside category embeddings
-- Repeated seeds and time-series cross-validation for confidence intervals
-
----
-
-## 8. Repository structure
+## 7. Repository structure
 
 ```
 DL-based-sequential-fraud-detection/
@@ -212,7 +200,7 @@ DL-based-sequential-fraud-detection/
 
 ---
 
-## 9. Reproducing this
+## 8. Reproducing this
 
 ```bash
 git clone https://github.com/adwitiyashukla/DL-based-sequential-fraud-detection.git
@@ -251,6 +239,4 @@ Timings above are from an Acer Aspire A315-59: i5-1235U, 16 GB RAM, no GPU.
 
 ## Author
 
-Adwitiya Shukla, MS Computer Science, University of Cincinnati
-
-[Google Scholar](https://scholar.google.com/citations?user=kGfPJiwAAAAJ) | ORCID [0009-0002-4353-4793](https://orcid.org/0009-0002-4353-4793)
+Adwitiya Shukla
