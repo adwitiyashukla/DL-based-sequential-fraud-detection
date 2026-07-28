@@ -187,7 +187,7 @@ Stated plainly, because these bound what the numbers above are worth.
 ## 8. Repository structure
 
 ```
-sequential-fraud-detection/
+DL-based-sequential-fraud-detection/
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
@@ -215,8 +215,8 @@ sequential-fraud-detection/
 ## 9. Reproducing this
 
 ```bash
-git clone https://github.com/adwitiyashukla/sequential-fraud-detection.git
-cd sequential-fraud-detection
+git clone https://github.com/adwitiyashukla/DL-based-sequential-fraud-detection.git
+cd DL-based-sequential-fraud-detection
 
 python -m venv .venv
 .venv\Scripts\activate           # Windows
