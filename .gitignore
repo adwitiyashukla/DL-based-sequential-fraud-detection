@@ -10,6 +10,9 @@ cache/
 *.npz
 *.npy
 
+# Generated demo payload for the Space. Rebuild with: python -m src.export_space
+space/assets/
+
 # Virtual environments
 .venv/
 venv/

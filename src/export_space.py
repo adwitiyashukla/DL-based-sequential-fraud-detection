@@ -33,7 +33,10 @@ from src import config
 from src.dataset import load_cache, split_indices
 from src.features import load_raw, build_features
 
-SPACE_DIR = config.ROOT.parent / "hf-space"
+# The Space source lives in space/ and its generated assets sit alongside it.
+# The assets are derived artefacts, so they are gitignored: one command
+# regenerates them from the trained models.
+SPACE_DIR = config.ROOT / "space"
 ASSETS = SPACE_DIR / "assets"
 
 PER_SCENARIO = 50
