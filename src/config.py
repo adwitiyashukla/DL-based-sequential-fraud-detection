@@ -19,6 +19,7 @@ TEST_CSV = DATA_DIR / "fraudTest.csv"
 
 FEATURE_CACHE = CACHE_DIR / "features.npz"
 GRU_CHECKPOINT = CACHE_DIR / "gru.pth"
+LGB_MODEL = CACHE_DIR / "lightgbm.txt"
 
 # Score files, written by the training scripts and read by evaluate.py.
 SCORES = {

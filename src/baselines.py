@@ -55,6 +55,10 @@ def train_lightgbm(x_tr, y_tr, x_te, cat_index: int) -> np.ndarray:
         verbose=-1,
     )
     model.fit(x_tr, y_tr, categorical_feature=[cat_index])
+    # Persist the booster in LightGBM's own text format. It carries the
+    # categorical feature handling with it, so the demo app can reload and
+    # predict without reconstructing the sklearn wrapper.
+    model.booster_.save_model(str(config.LGB_MODEL))
     return model.predict_proba(x_te)[:, 1]
 
 

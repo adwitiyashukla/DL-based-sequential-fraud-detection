@@ -1,6 +1,10 @@
 # Sequential Fraud Detection
 
+[![Open in Hugging Face Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-md.svg)](https://huggingface.co/spaces/adwitiyashukla/sequential-fraud-detection)
+
 Sequence models for credit card fraud detection, with cost-sensitive threshold selection and a gradient boosting baseline.
+
+**[Try the live demo](https://huggingface.co/spaces/adwitiyashukla/sequential-fraud-detection).** Pick a real transaction and watch the GRU score it against the LightGBM baseline in a genuine forward pass, or move the review cost slider and see the optimal threshold move with it.
 
 **Headline result:** a small GRU that reads each card's last 10 transactions reaches **0.965 PR-AUC** against **0.899** for a LightGBM model given the identical features without sequence context. At the cost-minimising threshold the GRU misses **31** of 2,145 frauds where LightGBM misses **112**, cutting total cost from **$31,707** to **$15,549**.
 
