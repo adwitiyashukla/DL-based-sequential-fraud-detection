@@ -1,10 +1,3 @@
-"""
-The GRU, copied verbatim from the training repository so the Space is
-self-contained. Architecture must match the checkpoint exactly.
-
-Source: https://github.com/adwitiyashukla/DL-based-sequential-fraud-detection
-"""
-
 from __future__ import annotations
 
 import torch
@@ -12,14 +5,6 @@ from torch import nn
 
 
 class GRUFraudModel(nn.Module):
-    """
-    Per timestep the model sees a learned embedding of the merchant category
-    and a linear projection of the standardised numeric features. Those are
-    concatenated and fed to a single layer GRU. The hidden state at the final
-    timestep, which is the transaction being scored, goes through dropout and a
-    linear head to one logit.
-    """
-
     def __init__(
         self,
         n_numeric: int,

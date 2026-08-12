@@ -1,11 +1,5 @@
 name: Keepalive
 
-# Hugging Face suspends a Space after 48 hours without traffic. This workflow
-# visits the Space every six hours so the idle timer never runs out and a
-# visitor never lands on a cold start.
-#
-# SPACE_ID below is the only value to change when reusing this file.
-
 on:
   schedule:
     - cron: "0 */6 * * *"
@@ -25,7 +19,6 @@ jobs:
     timeout-minutes: 10
     env:
       SPACE_ID: adwitiyashukla/sequential-fraud-detection
-      # Only needed for a private Space. Add it as a repository secret.
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
     steps:
       - name: Wake the Space and wait until it reports RUNNING
@@ -39,7 +32,6 @@ jobs:
 
           api="https://huggingface.co/api/spaces/${SPACE_ID}"
 
-          # Read the public URL from the Hub rather than guessing it.
           info=$(curl -sS --max-time 30 "${auth[@]}" "$api")
           host=$(printf '%s' "$info" | jq -r '
             if .host then .host
@@ -54,8 +46,6 @@ jobs:
           echo "Space URL: ${host}"
 
           for attempt in $(seq 1 20); do
-            # Any request to the Space subdomain resets the idle timer, and
-            # wakes it if it is already asleep.
             curl -sS -o /dev/null --max-time 30 "$host" || true
 
             stage=$(curl -sS --max-time 30 "${auth[@]}" "$api" | jq -r '.runtime.stage // "UNKNOWN"')

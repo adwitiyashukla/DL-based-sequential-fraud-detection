@@ -1,26 +1,3 @@
-"""
-Build the data payload for the Hugging Face Space.
-
-The Space cannot ship the 500 MB of raw CSVs, and it does not need to. What it
-needs is:
-
-  1. A curated set of real test transactions, each with its 10 step window
-     already sliced, so the GRU can run a genuine forward pass on demand.
-  2. Human readable values for those same transactions, so the demo shows
-     dollars and timestamps rather than z-scores.
-  3. The full test scores, labels and amounts, so the cost explorer can
-     recompute the confusion matrix at any threshold instantly.
-
-Total payload is well under 15 MB.
-
-Run with:
-    python -m src.export_space
-
-Requires the raw CSVs, since the display values are re-derived from them. The
-sort in build_features is deterministic, so row indices line up exactly with
-the cached feature arrays.
-"""
-
 from __future__ import annotations
 
 import json
@@ -33,15 +10,11 @@ from src import config
 from src.dataset import load_cache, split_indices
 from src.features import load_raw, build_features
 
-# The Space source lives in space/ and its generated assets sit alongside it.
-# The assets are derived artefacts, so they are gitignored: one command
-# regenerates them from the trained models.
 SPACE_DIR = config.ROOT / "space"
 ASSETS = SPACE_DIR / "assets"
 
 PER_SCENARIO = 50
 
-# Ordered so the most interesting case is the default in the dropdown.
 SCENARIO_ORDER = [
     "Fraud caught by the GRU, missed by LightGBM",
     "Fraud caught by both models",
@@ -106,7 +79,6 @@ def main() -> None:
     thr_gru, thr_lgb = load_thresholds()
     print(f"Thresholds: GRU {thr_gru:.4f}, LightGBM {thr_lgb:.4f}")
 
-    # ---------------------------------------------------------------- scenarios
     scenarios = build_scenarios(y_te, s_gru, s_lgb, thr_gru, thr_lgb)
     picked: list[int] = []
     labels: list[str] = []
@@ -125,7 +97,6 @@ def main() -> None:
     seq = config.SEQ_LEN
     n_feat = x_num.shape[1]
 
-    # ------------------------------------------------------- re-derive display
     print("Re-deriving human readable values from the raw CSVs ...")
     df, split_ts = load_raw()
     df = build_features(df, split_ts)
@@ -141,7 +112,6 @@ def main() -> None:
     disp_ratio = np.expm1(df["log_amt_vs_card_mean"].to_numpy(dtype=np.float64))
     del df
 
-    # ------------------------------------------------------------ build windows
     win_num = np.zeros((n_samples, seq, n_feat + 1), dtype=np.float32)
     win_cat = np.zeros((n_samples, seq), dtype=np.int64)
     records = []
@@ -188,7 +158,6 @@ def main() -> None:
         }
     )
 
-    # ------------------------------------------------------------------ writing
     np.savez_compressed(
         ASSETS / "demo_windows.npz", win_num=win_num, win_cat=win_cat
     )

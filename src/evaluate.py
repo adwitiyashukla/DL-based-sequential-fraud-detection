@@ -1,30 +1,10 @@
-"""
-Evaluation, the way a fraud team would actually do it.
-
-Three deliberate choices here, each of which is a departure from the typical
-student fraud project:
-
-1. PR-AUC leads, ROC-AUC is reported but demoted. At a 0.4 percent base rate
-   the negative class dominates the false positive rate, so ROC-AUC looks
-   impressive for models that are not useful.
-2. Recall at a fixed alert budget. A review team has finite capacity. The
-   question that decides a purchase is "if we can review the top 1 percent of
-   transactions, how much fraud do we catch", not "what is the F1 score".
-3. The decision threshold is chosen by minimising expected cost, not by
-   defaulting to 0.5. A missed fraud costs the transaction amount, a false
-   positive costs a fixed review expense.
-
-Run with:
-    python -m src.evaluate
-"""
-
 from __future__ import annotations
 
 import json
 
 import matplotlib
 
-matplotlib.use("Agg")  # No display on a headless run; write straight to PNG.
+matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -35,13 +15,6 @@ from src.dataset import load_cache, split_indices
 
 
 def cost_analysis(y: np.ndarray, scores: np.ndarray, amt: np.ndarray) -> dict:
-    """
-    Sweep every possible alert cutoff and find the one that minimises total cost.
-
-    Working in "top k transactions" space rather than looping over candidate
-    thresholds makes this exact and vectorised: sorting once by descending score
-    means the cumulative sums give the confusion matrix at every cutoff at once.
-    """
     order = np.argsort(-scores, kind="stable")
     y_s = y[order].astype(np.float64)
     amt_s = amt[order].astype(np.float64)
@@ -55,15 +28,11 @@ def cost_analysis(y: np.ndarray, scores: np.ndarray, amt: np.ndarray) -> dict:
     caught_amt_k = np.concatenate([[0.0], np.cumsum(y_s * amt_s)])
     fp_k = k - tp_k
 
-    # Cost of reviewing k transactions: the review expense for every false
-    # positive, plus the full value of every fraud that was not flagged.
     cost = config.REVIEW_COST * fp_k + (total_fraud_amt - caught_amt_k)
 
     best_k = int(np.argmin(cost))
     best_threshold = 1.0 + 1e-9 if best_k == 0 else float(s_s[best_k - 1])
 
-    # Recompute the confusion matrix from the threshold itself so that the
-    # reported numbers are internally consistent even when scores are tied.
     pred = scores >= best_threshold
     tp = int(((pred == 1) & (y == 1)).sum())
     fp = int(((pred == 1) & (y == 0)).sum())
@@ -91,7 +60,6 @@ def cost_analysis(y: np.ndarray, scores: np.ndarray, amt: np.ndarray) -> dict:
 
 
 def budget_metrics(y: np.ndarray, scores: np.ndarray, budget: float) -> dict:
-    """Recall and precision if the team can only review the top `budget` fraction."""
     n = len(scores)
     k = max(1, int(round(budget * n)))
     order = np.argsort(-scores, kind="stable")[:k]
@@ -141,7 +109,7 @@ def plot_cost_curves(results) -> None:
         c = res["cost"]
         thr = c["curve_thresholds"]
         costs = c["curve_costs"]
-        step = max(1, len(thr) // 4000)  # Downsample purely for plot size.
+        step = max(1, len(thr) // 4000)
         ax.plot(thr[::step], costs[::step], linewidth=1.6,
                 label=config.MODEL_LABELS[name])
         ax.plot([c["threshold"]], [c["cost"]], marker="o", markersize=8,
@@ -154,8 +122,6 @@ def plot_cost_curves(results) -> None:
         )
     ax.axvline(0.5, linestyle="--", color="grey", linewidth=1.0,
                label="Naive threshold (0.5)")
-    # Log scale, otherwise logistic regression's cost range flattens the two
-    # models the comparison is actually about.
     ax.set_yscale("log")
     ax.set_xlabel("Decision threshold")
     ax.set_ylabel("Total cost in dollars (log scale)")
@@ -255,7 +221,6 @@ def print_table(results, y) -> None:
 
 
 def to_serialisable(results: dict) -> dict:
-    """Strip the large plotting arrays before writing metrics.json."""
     out = {}
     for name, res in results.items():
         c = {k: v for k, v in res["cost"].items()

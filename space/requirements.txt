@@ -1,9 +1,3 @@
-# gradio itself is installed by the Space runtime, so it is not listed here.
-#
-# torch is pinned to the CPU build. The default PyPI wheel bundles CUDA, which
-# is roughly 2.5 GB of dead weight on a CPU Space and slows every cold start.
-# The "+cpu" local tag only resolves from PyTorch's own index, hence the extra
-# index URL below.
 --extra-index-url https://download.pytorch.org/whl/cpu
 
 torch==2.13.0+cpu

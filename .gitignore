@@ -1,35 +1,27 @@
-# Data: the CSVs are hundreds of megabytes and must never be committed.
-# The directory itself is kept so a fresh clone has somewhere to unzip them.
 data/*
 !data/.gitkeep
 *.csv
 *.zip
 
-# Intermediate arrays: the feature cache alone is 120 MB.
 cache/
 *.npz
 *.npy
 
-# Generated demo payload for the Space. Rebuild with: python -m src.export_space
 space/assets/
 
-# Virtual environments
 .venv/
 venv/
 env/
 
-# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
 .ipynb_checkpoints/
 
-# Model checkpoints
 *.pth
 *.pt
 *.txt.model
 
-# OS and editor noise
 .DS_Store
 Thumbs.db
 .vscode/

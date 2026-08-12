@@ -1,17 +1,3 @@
-"""
-Sequential Fraud Detection, live demo.
-
-Two things happen here that a static repository cannot show:
-
-  1. The GRU actually runs. Every score on the first tab is a real forward pass
-     over that card's last 10 transactions, computed when you click.
-  2. The cost model is interactive. The decision threshold is not a modelling
-     constant, it is a business parameter, and the second tab lets you move the
-     inputs and watch the optimum move with them.
-
-Repository: https://github.com/adwitiyashukla/DL-based-sequential-fraud-detection
-"""
-
 from __future__ import annotations
 
 import json
@@ -27,8 +13,6 @@ import torch
 from model import GRUFraudModel
 
 ASSETS = Path(__file__).parent / "assets"
-
-# --------------------------------------------------------------------- loading
 
 with open(ASSETS / "config.json", encoding="utf-8") as f:
     CFG = json.load(f)
@@ -66,11 +50,7 @@ BOOSTER = lgb.Booster(model_file=str(ASSETS / "lightgbm.txt"))
 RNG = np.random.default_rng()
 
 
-# ------------------------------------------------------------------ inference
-
-
 def score_gru(sample_id: int) -> float:
-    """A genuine forward pass over the card's last 10 transactions."""
     with torch.no_grad():
         logit = GRU(
             torch.from_numpy(WIN_NUM[sample_id : sample_id + 1]),
@@ -80,7 +60,6 @@ def score_gru(sample_id: int) -> float:
 
 
 def score_lgb(sample_id: int) -> float:
-    """LightGBM sees only the final timestep: no sequence, same features."""
     flat = np.concatenate(
         [
             WIN_NUM[sample_id, -1, :N_FEAT].astype(np.float64),
@@ -88,9 +67,6 @@ def score_lgb(sample_id: int) -> float:
         ]
     ).reshape(1, -1)
     return float(BOOSTER.predict(flat)[0])
-
-
-# ----------------------------------------------------------- cost machinery
 
 
 def _cumulative(scores: np.ndarray) -> dict:
@@ -140,20 +116,14 @@ def confusion_at(model: str, threshold: float, review_cost: float) -> dict:
     }
 
 
-# ------------------------------------------------------------------- tab one
-
-
 def _history_table(sample_id: int) -> str:
     rows = DISPLAY[DISPLAY.sample_id == sample_id].sort_values("position")
     body = []
     for _, r in rows.iterrows():
-        target = bool(r.is_target)
-        cls = "target" if target else ""
-        marker = "&#9654;" if target else ""
+        cls = "target" if bool(r.is_target) else ""
         gap = "first seen" if r.hours_since_prev >= 719 else f"{r.hours_since_prev:,.1f} h"
         body.append(
             f"<tr class='{cls}'>"
-            f"<td class='marker'>{marker}</td>"
             f"<td>{r.timestamp}</td>"
             f"<td class='num'>${r.amount:,.2f}</td>"
             f"<td>{r.category}</td>"
@@ -164,7 +134,7 @@ def _history_table(sample_id: int) -> str:
         )
     return (
         "<div class='tablewrap'><table class='hist'>"
-        "<thead><tr><th></th><th>Timestamp</th><th>Amount</th><th>Category</th>"
+        "<thead><tr><th>Timestamp</th><th>Amount</th><th>Category</th>"
         "<th>Distance</th><th>Since previous</th><th>vs card average</th></tr></thead>"
         f"<tbody>{''.join(body)}</tbody></table></div>"
         "<p class='caption'>The highlighted row is the transaction being scored. "
@@ -243,9 +213,6 @@ def load_case(scenario: str):
     return header, _history_table(sid), panels, banner
 
 
-# ------------------------------------------------------------------- tab two
-
-
 def _metric_tile(label: str, value: str, sub: str = "") -> str:
     return (
         f"<div class='tile'><div class='t-label'>{label}</div>"
@@ -254,13 +221,6 @@ def _metric_tile(label: str, value: str, sub: str = "") -> str:
 
 
 def _style_fig(fig: go.Figure) -> go.Figure:
-    """
-    Transparent background and neutral greys.
-
-    A plotly_white template renders as a white rectangle on a dark page, which
-    looks broken. Letting the page show through, with axis text in a mid grey
-    that has contrast against both, works in either mode.
-    """
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
@@ -327,8 +287,6 @@ def explore(review_cost: float, threshold: float):
         height=420,
         hovermode="x unified",
     )
-    # Decade ticks only. Plotly's default log minor ticks produce a cluttered
-    # axis of 2s and 3s next to the 100k labels.
     fig.update_yaxes(dtick=1, tickprefix="$", tickformat="~s")
     return tiles, _style_fig(fig)
 
@@ -336,9 +294,6 @@ def explore(review_cost: float, threshold: float):
 def snap_to_optimal(review_cost: float):
     thr, _ = optimal_threshold("GRU", review_cost)
     return thr
-
-
-# ----------------------------------------------------------------- tab three
 
 
 def pr_figure() -> go.Figure:
@@ -404,10 +359,6 @@ Both points are covered in more detail in the repository.
 [Full code, methodology and limitations on GitHub](https://github.com/adwitiyashukla/DL-based-sequential-fraud-detection)
 """
 
-# Every colour below is either a Gradio theme variable or a translucent overlay,
-# so the demo reads correctly in both light and dark mode. Hardcoding light
-# greys here puts dark text on a dark background for anyone whose browser
-# prefers dark, which is most people.
 CSS = """
 .gradio-container { max-width: 1180px !important; }
 #hero { padding: 4px 0 2px 0; }
@@ -433,7 +384,6 @@ table.hist th { background: var(--background-fill-secondary); text-align:left;
 table.hist td { padding:8px 11px; border-bottom:1px solid var(--border-color-primary);
   color: var(--body-text-color); white-space:nowrap; }
 table.hist td.num { text-align:right; font-variant-numeric:tabular-nums; }
-table.hist td.marker { color:#818cf8; width:18px; }
 table.hist tr.target td { background: rgba(99,102,241,0.18); font-weight:700; }
 .caption { color: var(--body-text-color-subdued); font-size:0.8rem; margin:7px 2px 0 2px; }
 
@@ -544,13 +494,9 @@ with gr.Blocks(title="Sequential Fraud Detection") as demo:
 
 
 if __name__ == "__main__":
-    # Sanity check: live inference must reproduce the scores computed during
-    # the original evaluation run. A mismatch means the export is misaligned.
     ids = META.sample_id.values[:25]
     d_gru = max(abs(score_gru(int(i)) - float(META.score_gru[i])) for i in ids)
     d_lgb = max(abs(score_lgb(int(i)) - float(META.score_lgb[i])) for i in ids)
     print(f"[check] max score drift  GRU {d_gru:.2e}  LightGBM {d_lgb:.2e}")
 
-    # Gradio 6 takes theme and css at launch time rather than on the Blocks
-    # constructor. The Space pins this same version, so behaviour matches.
     demo.launch(theme=THEME, css=CSS)

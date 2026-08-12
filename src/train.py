@@ -1,15 +1,3 @@
-"""
-Train the GRU on per card transaction sequences.
-
-Run with:
-    python -m src.train
-
-Useful flags:
-    --subsample-neg 0.1   keep every fraud and 10 percent of legitimate rows,
-                          for training only. The test set is never touched.
-    --epochs 3            shorten the run if time is tight.
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -43,7 +31,6 @@ def parse_args() -> argparse.Namespace:
 
 @torch.no_grad()
 def score(model: nn.Module, loader: DataLoader) -> np.ndarray:
-    """Return fraud probabilities in the loader's (unshuffled) row order."""
     model.eval()
     out = []
     for x_num, x_cat, _ in loader:
@@ -58,9 +45,6 @@ def main() -> None:
 
     torch.manual_seed(config.SEED)
     np.random.seed(config.SEED)
-    # The i5-1235U exposes 12 threads across 2 performance and 8 efficiency
-    # cores. Using them explicitly is the difference between a 2 minute epoch
-    # and a 10 minute one, since there is no GPU to fall back on.
     torch.set_num_threads(args.threads)
 
     cache = load_cache()
@@ -78,9 +62,6 @@ def main() -> None:
     train_ds = SequenceDataset(x_num, x_cat, y, block_start, train_rows, args.seq_len)
     test_ds = SequenceDataset(x_num, x_cat, y, block_start, test_rows, args.seq_len)
 
-    # num_workers=0 on purpose. Windows spawns rather than forks, so worker
-    # processes would each re-pickle the feature arrays, which costs more than
-    # the slicing they save on a dataset this size.
     train_loader = DataLoader(
         train_ds, batch_size=args.batch_size, shuffle=True, num_workers=0, drop_last=False
     )
@@ -90,9 +71,6 @@ def main() -> None:
 
     model = GRUFraudModel(n_numeric=x_num.shape[1] + 1, n_categories=n_categories)
 
-    # The fraud rate is well under one percent, so an unweighted loss would be
-    # minimised by predicting "legitimate" for everything. pos_weight rescales
-    # the positive class by the negative to positive ratio.
     n_pos = float(y[train_rows].sum())
     n_neg = float(len(train_rows) - n_pos)
     pos_weight = torch.tensor(n_neg / max(n_pos, 1.0), dtype=torch.float32)

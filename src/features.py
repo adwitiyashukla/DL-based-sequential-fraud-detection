@@ -1,16 +1,3 @@
-"""
-Feature engineering for sequential fraud detection.
-
-The single most important property of this file is that every derived statistic
-is CAUSAL: it is computed using only transactions that happened strictly before
-the transaction being described. A rolling or expanding aggregate that includes
-the current or a future transaction leaks information backwards in time and
-silently inflates every downstream metric.
-
-Run with:
-    python -m src.features
-"""
-
 from __future__ import annotations
 
 import numpy as np
@@ -18,13 +5,6 @@ import pandas as pd
 
 from src import config
 
-# Columns kept from the raw CSVs.
-#
-# Dropped on purpose: first, last, gender, street, city, state, zip, job,
-# trans_num, unix_time. These are identifiers or near-identifiers with no
-# generalisable predictive signal. Keeping a per-cardholder identifier invites
-# the model to memorise individuals rather than learn behaviour, and trans_num
-# is a primary key that a tree model would happily overfit to.
 USE_COLS = [
     "trans_date_trans_time",
     "cc_num",
@@ -52,14 +32,11 @@ NUMERIC_FEATURES = [
     "age",
 ]
 
-# A gap of more than 30 days is treated as "no meaningful recent history".
 MAX_GAP_HOURS = 720.0
-# Ratio of current amount to the card's prior mean amount, clipped for stability.
 MAX_AMT_RATIO = 100.0
 
 
 def haversine_km(lat1, lon1, lat2, lon2):
-    """Great circle distance in kilometres between two arrays of coordinates."""
     radius = 6371.0088
     phi1 = np.radians(lat1)
     phi2 = np.radians(lat2)
@@ -70,15 +47,6 @@ def haversine_km(lat1, lon1, lat2, lon2):
 
 
 def load_raw() -> tuple[pd.DataFrame, pd.Timestamp]:
-    """
-    Load both CSVs and concatenate them.
-
-    The two files are already separated by time, so the chronological split is
-    defined by the last timestamp in fraudTrain.csv. Splitting by timestamp
-    rather than by source file guarantees that every test row is strictly later
-    than every training row, which is what makes the backward-looking sequence
-    windows safe.
-    """
     print("Loading CSVs ...")
     train = pd.read_csv(
         config.TRAIN_CSV,
@@ -103,9 +71,7 @@ def load_raw() -> tuple[pd.DataFrame, pd.Timestamp]:
 
 
 def build_features(df: pd.DataFrame, split_ts: pd.Timestamp) -> pd.DataFrame:
-    """Sort by card and time, then derive every feature causally."""
     print("Sorting by card and timestamp ...")
-    # mergesort is stable, which keeps the ordering reproducible for ties.
     df = df.sort_values(
         ["cc_num", "trans_date_trans_time"], kind="mergesort"
     ).reset_index(drop=True)
@@ -114,45 +80,26 @@ def build_features(df: pd.DataFrame, split_ts: pd.Timestamp) -> pd.DataFrame:
 
     print("Deriving features ...")
 
-    # Amount. Heavily right skewed, so log1p keeps the scale usable.
     df["log_amt"] = np.log1p(df["amt"])
 
-    # Time since that card's previous transaction. This is the single most
-    # important sequential feature: a burst of transactions on a card that
-    # normally sees one a day is exactly the behavioural signal we want.
-    # groupby.shift(1) looks strictly backwards, so this is causal by
-    # construction. The first transaction of each card has no predecessor and
-    # is assigned the maximum gap.
     prev_ts = df.groupby("cc_num", sort=False)["trans_date_trans_time"].shift(1)
     gap_hours = (ts - prev_ts).dt.total_seconds() / 3600.0
     gap_hours = gap_hours.fillna(MAX_GAP_HOURS).clip(lower=0.0, upper=MAX_GAP_HOURS)
     df["log_hours_since_prev"] = np.log1p(gap_hours)
 
-    # Calendar features. Fraud in this dataset is concentrated in the small
-    # hours, so hour of day carries real signal.
     df["hour_of_day"] = ts.dt.hour.astype("float64")
     df["day_of_week"] = ts.dt.dayofweek.astype("float64")
-    # Cyclic encoding so that hour 23 sits next to hour 0 rather than 23 units
-    # away. Trees can use the raw hour; the neural network benefits from this.
     df["hour_sin"] = np.sin(2.0 * np.pi * df["hour_of_day"] / 24.0)
     df["hour_cos"] = np.cos(2.0 * np.pi * df["hour_of_day"] / 24.0)
 
-    # Amount relative to what this card normally spends.
-    #
-    # Computed as a causal expanding mean that EXCLUDES the current row:
-    #   prior_sum   = cumulative sum up to and including this row, minus this row
-    #   prior_count = number of rows seen before this one for this card
-    # The current transaction therefore never contributes to its own baseline.
     cum_amt = df.groupby("cc_num", sort=False)["amt"].cumsum()
     prior_sum = cum_amt - df["amt"]
     prior_count = df.groupby("cc_num", sort=False).cumcount().astype("float64")
     prior_mean = prior_sum / prior_count.where(prior_count > 0)
     ratio = df["amt"] / prior_mean
-    # First transaction of a card has no baseline, so the ratio is defined as 1.
     ratio = ratio.fillna(1.0).clip(lower=0.0, upper=MAX_AMT_RATIO)
     df["log_amt_vs_card_mean"] = np.log1p(ratio)
 
-    # Distance between the cardholder's home location and the merchant.
     dist = haversine_km(
         df["lat"].to_numpy(),
         df["long"].to_numpy(),
@@ -163,11 +110,8 @@ def build_features(df: pd.DataFrame, split_ts: pd.Timestamp) -> pd.DataFrame:
 
     df["log_city_pop"] = np.log1p(df["city_pop"])
 
-    # Age at the time of the transaction, not age today.
     df["age"] = (ts - df["dob"]).dt.days / 365.25
 
-    # Category is integer encoded and fed to an embedding layer.
-    # Index 0 is reserved for the padding step, so real categories start at 1.
     cat_codes, cat_names = pd.factorize(df["category"], sort=True)
     df["category_idx"] = cat_codes.astype(np.int64) + 1
 
@@ -183,25 +127,12 @@ def build_features(df: pd.DataFrame, split_ts: pd.Timestamp) -> pd.DataFrame:
 
 
 def card_block_starts(cc_num: np.ndarray) -> np.ndarray:
-    """
-    For each row, the array index where that card's block of rows begins.
-
-    The frame is sorted by card, so each card occupies one contiguous block.
-    This array is what stops a sequence window from running off the start of a
-    card and picking up the tail of a different card's history.
-    """
     change = np.flatnonzero(np.r_[True, cc_num[1:] != cc_num[:-1]])
     block_lengths = np.diff(np.r_[change, len(cc_num)])
     return np.repeat(change, block_lengths)
 
 
 def standardise(x: np.ndarray, train_mask: np.ndarray) -> np.ndarray:
-    """
-    Z-score the numeric features using statistics from the TRAINING rows only.
-
-    Fitting the scaler on the full dataset would be a real, if subtle, form of
-    leakage: the test period's distribution would inform the training input.
-    """
     mean = x[train_mask].mean(axis=0)
     std = x[train_mask].std(axis=0)
     std[std < 1e-8] = 1.0
